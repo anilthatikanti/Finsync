@@ -55,6 +55,16 @@ export interface IStock {
   longName: string;
 }
 
+
+export interface NewsArticle {
+    title: string;
+    link: string;
+    description: string | null; // Can be a string or null
+    source_name: string;
+    image_url: string | null;   // Can be a string URL or null
+    source_icon: string;
+    pubDate: string;            // ISO 8601 date string (e.g., "2025-06-14 00:30:00")
+}
 export interface IWatchList {
   _id: string; // assuming MongoDB ObjectId is stored as string on frontend
   watchListName: string;

@@ -10,7 +10,6 @@ const WatchList: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("");
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<searchStock[]>([]);
-  const [news, setNews] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
 
   const activeWatchlist = useMemo(
@@ -53,7 +52,6 @@ const WatchList: React.FC = () => {
         setLoading(true);
         const res = await axiosInstance.get(`/stocks/search?q=${query}`);
         const quotes = res.data.payload?.quotes || [];
-        setNews(res.data.payload?.news);
         setSearchResults(
           quotes.filter((stock: searchStock) => !!stock.longname)
         );
@@ -68,43 +66,40 @@ const WatchList: React.FC = () => {
     return () => clearTimeout(debounce);
   }, [query]);
 
-  const updateWatchlistStock = useCallback(
-    async (stockItem: searchStock) => {
-      try {
-        const res = await axiosInstance.patch("/stocks/add-watchlist", {
-          watchListId: activeTab,
-          stockSymbol: stockItem.symbol,
-          longName: stockItem.longname,
-        });
+  const updateWatchlistStock = useCallback(async (stockItem: searchStock) => {
+    try {
+      const res = await axiosInstance.patch("/stocks/add-watchlist", {
+        watchListId: activeTab,
+        stockSymbol: stockItem.symbol,
+        longName: stockItem.longname,
+      });
 
-        if (res.status) {
-          setWatchList((prev) =>
-            prev.map((w) =>
-              w._id === activeTab
-                ? {
-                    ...w,
-                    stocks: [
-                      ...w.stocks,
-                      {
-                        symbol: stockItem.symbol,
-                        longName: stockItem.longname,
-                      },
-                    ],
-                  }
-                : w
-            )
-          );
-          if (stockItem.symbol) {
-            tickerStore.subscribeToSymbol(stockItem.symbol);
-          }
-          setQuery("");
+      if (res.status) {
+        setWatchList((prev) =>
+          prev.map((w) =>
+            w._id === activeTab
+              ? {
+                  ...w,
+                  stocks: [
+                    ...w.stocks,
+                    {
+                      symbol: stockItem.symbol,
+                      longName: stockItem.longname,
+                    },
+                  ],
+                }
+              : w
+          )
+        );
+        if (stockItem.symbol) {
+          tickerStore.subscribeToSymbol(stockItem.symbol);
         }
-      } catch (err) {
-        console.error("Update Watchlist Error:", err);
+        setQuery("");
       }
-    },
-    []
-  );
+    } catch (err) {
+      console.error("Update Watchlist Error:", err);
+    }
+  }, []);
 
   const deleteStockFromWatchlist = useCallback(
     async (stockItem: searchStock) => {
@@ -116,64 +111,85 @@ const WatchList: React.FC = () => {
         if (response.status) {
           setWatchList((prev) =>
             prev.map((w) =>
-              w._id === activeTab ? { ...w, stocks: w.stocks.filter((s) => s.symbol !== stockItem.symbol) } : w
+              w._id === activeTab
+                ? {
+                    ...w,
+                    stocks: w.stocks.filter(
+                      (s) => s.symbol !== stockItem.symbol
+                    ),
+                  }
+                : w
             )
           );
           tickerStore.unsubscribeFromSymbol(stockItem.symbol);
-        } 
+        }
       } catch (err) {
         console.error("Delete Stock from Watchlist Error:", err);
       }
     },
     []
-  );  
+  );
 
   const renderWatchListRows = () => (
     <div className="h-full w-full">
-      {/* Header */}
-      <div className="flex justify-between items-center w-full text-xs uppercase text-gray-400 py-3 border-b border-gray-200 dark:border-gray-700">
-        <div >Name</div>
-        <div >Price</div>
-      </div>
-      {/* Rows */}
-      <div className="overflow-y-auto no-scrollbar h-[70%] md:h-[85%]">
-        {activeWatchlist?.stocks.map((stock, index) => {
-          const live = liveData.get(stock.symbol);
-          const price = live?.price ?? 0;
-          const change = live?.changePercent ?? 0;
-          const priceColor =
-            change > 0
-              ? "text-green-500"
-              : change < 0
-              ? "text-red-500"
-              : "text-gray-500";
-          return (
-            <div
-              key={stock.symbol}
-              className={`flex justify-between items-center gap-2 bg-white dark:bg-gray-800 ${
-                index !== activeWatchlist.stocks.length - 1
-                  ? "border-b border-gray-200 dark:border-gray-700"
-                  : ""
-              }`}
-            >
-              <div
-                className="w-fit py-4 font-medium text-gray-900 dark:text-white overflow-hidden text-ellipsis whitespace-nowrap "
-              >
-                {stock.longName}
-              </div>
-              <div className={`w-fit flex flex-col text-right  py-4 text-sm ${priceColor}`}
-              >
-                {price.toFixed(2)}
-                {change !== 0 && (
-                  <span className={`ml-2 text-sm ${priceColor}`}>
-                    ({change > 0 ? "+" : ""}{change.toFixed(2)}%)
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {!activeWatchlist?.stocks?.length ? (
+        <div className="h-full w-full flex justify-center items-center">
+          <img
+            src="/logos/watchlist_empty_page.svg"
+            className="h-[40%] "
+            alt="Finsync Logo"
+          />
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex justify-between items-center w-full text-xs uppercase text-gray-400 py-3 border-b border-gray-200 dark:border-gray-700">
+            <div>Name</div>
+            <div>Price</div>
+          </div>
+          {/* Rows */}
+          <div className="overflow-y-auto no-scrollbar h-[70%] md:h-[85%]">
+            {activeWatchlist?.stocks.map((stock, index) => {
+              const live = liveData.get(stock.symbol);
+              const price = live?.price ?? 0;
+              const change = live?.changePercent ?? 0;
+              const priceColor =
+                change > 0
+                  ? "text-green-500"
+                  : change < 0
+                  ? "text-red-500"
+                  : "text-gray-500";
+              return (
+                <div
+                  key={stock.symbol}
+                  className={`flex justify-between items-center gap-2 bg-white dark:bg-gray-800 ${
+                    index !== activeWatchlist.stocks.length - 1
+                      ? "border-b border-gray-200 dark:border-gray-700"
+                      : ""
+                  }`}
+                >
+                  <div className="w-fit py-2 font-medium text-[12px] md:text-base text-gray-900 dark:text-white overflow-hidden text-ellipsis whitespace-nowrap ">
+                    {stock.longName}
+                  </div>
+                  <div
+                    className={`w-fit flex flex-col text-right  py-2 text-[10px] md:text-[14px] ${priceColor}`}
+                  >
+                    {price.toFixed(2)}
+                    {change !== 0 && (
+                      <span
+                        className={`text-[8px] md:text-[12px]  ${priceColor}`}
+                      >
+                        ({change > 0 ? "+" : ""}
+                        {change.toFixed(2)}%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -222,23 +238,21 @@ const WatchList: React.FC = () => {
                 >
                   <th className="py-4 font-medium text-gray-900  dark:text-white flex justify-between items-center">
                     {stock.longname}
-                    {
-                      
-                      liveData.has(stock.symbol) ?
+                    {liveData.has(stock.symbol) ? (
                       <button
-                      className="border-1 border-solid  border-red-500 py-[2px] px-[8px]  text-red-500 hover:bg-red-500  hover:text-white"
-                      onClick={() => deleteStockFromWatchlist(stock)}
-                    >
-                      -
-                    </button>
-                    :
-                    <button
-                      className="border-1 border-solid border-indigo-500 px-1.5 pb-[2px] text-indigo-500 hover:bg-indigo-500 hover:text-white"
-                      onClick={() => updateWatchlistStock(stock)}
-                    >
-                      +
-                    </button>
-                    }
+                        className="border-1 border-solid  border-red-500 py-[2px] px-[8px]  text-red-500 hover:bg-red-500  hover:text-white"
+                        onClick={() => deleteStockFromWatchlist(stock)}
+                      >
+                        -
+                      </button>
+                    ) : (
+                      <button
+                        className="border-1 border-solid border-indigo-500 px-1.5 pb-[2px] text-indigo-500 hover:bg-indigo-500 hover:text-white"
+                        onClick={() => updateWatchlistStock(stock)}
+                      >
+                        +
+                      </button>
+                    )}
                   </th>
                   <td className="text-right pr-6 py-4">
                     {stock.exchange || "-"}
@@ -271,68 +285,68 @@ const WatchList: React.FC = () => {
         />
       </svg>
     </div>
-  ) : (
-    <div className="h-full w-full md:flex gap-2">
-      <div className="w-full h-full lg:w-[65%] px-6 py-3 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
-        <div className="w-full h-[calc(100vh-135px)]">
-          <div className="w-full flex flex-col md:flex-row justify-between items-center mb-3">
-            <ul className="w-full md:w-[55%] flex overflow-x-auto no-scrollbar whitespace-nowrap text-sm font-medium text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
-              {watchlist.map((w) => (
-                <li key={w._id} className="me-2">
-                  <a
-                    href="#"
-                    onClick={() => setActiveTab(w._id)}
-                    className={`inline-block p-4 rounded-t-lg ${
-                      activeTab === w._id
-                        ? "text-blue-600 border-b-2 border-blue-600 dark:text-blue-400"
-                        : "text-gray-500 hover:text-gray-700 dark:hover:text-white"
-                    }`}
-                  >
-                    {w.watchListName}
-                  </a>
-                </li>
-              ))}
-            </ul>
+    ) : (
+      <div className="h-full w-full md:flex gap-2">
+        <div className="w-full h-full lg:w-[65%] px-6 py-3 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
+          <div className="w-full h-[calc(100vh-135px)]">
+            <div className="w-full flex flex-col md:flex-row justify-between items-center mb-3">
+              <ul className="w-full md:w-[55%] flex overflow-x-auto no-scrollbar whitespace-nowrap text-sm font-medium text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
+                {watchlist.map((w) => (
+                  <li key={w._id} className="me-2">
+                    <a
+                      href="#"
+                      onClick={() => setActiveTab(w._id)}
+                      className={`inline-block p-4 rounded-t-lg ${
+                        activeTab === w._id
+                          ? "text-blue-600 border-b-2 border-blue-600 dark:text-blue-400"
+                          : "text-gray-500 hover:text-gray-700 dark:hover:text-white"
+                      }`}
+                    >
+                      {w.watchListName}
+                    </a>
+                  </li>
+                ))}
+              </ul>
 
-            <form
-              className="w-full md:w-[40%] mt-2"
-              onSubmit={(e) => e.preventDefault()}
-            >
-              <div className="relative">
-                <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-500 dark:text-gray-400"
-                    fill="none"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
-                    />
-                  </svg>
+              <form
+                className="w-full md:w-[40%] mt-2"
+                onSubmit={(e) => e.preventDefault()}
+              >
+                <div className="relative">
+                  <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                    <svg
+                      className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                      fill="none"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search stock..."
+                    className="block w-full p-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                  />
                 </div>
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search stock..."
-                  className="block w-full p-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-                />
-              </div>
-            </form>
-          </div>
+              </form>
+            </div>
 
-          {query ? renderSearchResults() : renderWatchListRows()}
+            {query ? renderSearchResults() : renderWatchListRows()}
+          </div>
+        </div>
+
+        <div className="w-[35%] hidden lg:block">
+          <News />
         </div>
       </div>
-
-      <div className="w-[35%] hidden lg:block">
-        <News data={news || []} />
-      </div>
-    </div>
   );
 };
 
