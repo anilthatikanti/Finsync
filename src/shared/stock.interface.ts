@@ -50,8 +50,31 @@ export interface Stock {
         type: string;
       }
 
+export interface IStock {
+  symbol: string;
+  longName: string;
+}
+
 export interface IWatchList {
-        _id: number;
-        watchListName: string;
-        stocks: IStockData[];
+  _id: string; // assuming MongoDB ObjectId is stored as string on frontend
+  watchListName: string;
+  stocks: IStock[];
+}
+
+export interface searchStock {
+  dispSecIndFlag: boolean;
+  exchDisp: string;
+  exchange: string;
+  index: string;
+  industry: string;
+  industryDisp: string;
+  isYahooFinance: boolean;
+  longname: string;
+  quoteType: string;
+  score: number;
+  sector: string;
+  sectorDisp: string;
+  shortname: string;
+  symbol: string;
+  typeDisp: string;
 }

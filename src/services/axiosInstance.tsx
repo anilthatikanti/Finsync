@@ -4,7 +4,8 @@ import { auth } from './firebase';
  // Assuming you initialize Firebase Auth here
 
 const axiosInstance = axios.create({
-  baseURL: "https://node-mongoose-server.onrender.com",
+  baseURL: "http://localhost:3000",
+  // baseURL: "https://node-mongoose-server.onrender.com",
 });
 
 // Request interceptor to automatically add the Authorization header

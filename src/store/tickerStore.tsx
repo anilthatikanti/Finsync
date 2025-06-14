@@ -4,28 +4,40 @@ import type { ITickerData } from "../shared/stock.interface";
 type Listener = () => void
 
 let listeners = new Set<Listener>();
-const tickerMap = new Map<string,ITickerData>()
+const tickerMap = new Map<string,ITickerData>();
+const subscribedSymbols = new Set<string>();
+
 webSocketService.onMessage((data: ITickerData) => {
-    tickerStore.setData(data); // Use this instead of directly mutating tickerMap
-  });
+    tickerStore.setData(data);
+});
 
 let lastSnapshot = tickerMap;
 
 export const tickerStore = {
-  subscribe: (listener: Listener) => {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-  },
+    subscribe: (listener: Listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+    },
 
-  getSnapShot: () => lastSnapshot,
+    getSnapShot: () => lastSnapshot,
 
-  // Update map and snapshot on new data
-  setData: (data: ITickerData) => {
-    tickerMap.set(data.id, data);
-    lastSnapshot = new Map(tickerMap); // Update snapshot reference only when data changes
-    listeners.forEach((listener) => listener());
-  },
+    setData: (data: ITickerData) => {
+        tickerMap.set(data.id, data);
+        lastSnapshot = new Map(tickerMap);
+        listeners.forEach((listener) => listener());
+    },
 
-  subscribeToSymbol: (symbol: string) => webSocketService.subscribe(symbol),
-  unsubscribeFromSymbol: (symbol: string) => webSocketService.unsubscribe(symbol),
+    subscribeToSymbol: async (symbol: string) => {
+        if (!subscribedSymbols.has(symbol)) {
+            subscribedSymbols.add(symbol);
+            await webSocketService.subscribe(symbol);
+        }
+    },
+
+    unsubscribeFromSymbol: async (symbol: string) => {
+        if (subscribedSymbols.has(symbol)) {
+            subscribedSymbols.delete(symbol);
+            await webSocketService.unsubscribe(symbol);
+        }
+    }
 };

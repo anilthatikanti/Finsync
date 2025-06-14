@@ -1,178 +1,336 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { News } from "./news";
 import axiosInstance from "../../services/axiosInstance";
-import type { IStockData, IWatchList } from "../../shared/stock.interface";
+import type { IWatchList, searchStock } from "../../shared/stock.interface";
 import { useLiveData } from "../../hooks/useLiveDataStore";
 import { tickerStore } from "../../store/tickerStore";
 
 const WatchList: React.FC = () => {
-  const WATCHLIST: IWatchList[] = [
-    {
-      _id: 1, watchListName: 'WatchList_1', stocks: [
-      ]
-    },
-    { _id: 2, watchListName: 'WatchList_2', stocks: [] },
-    { _id: 3, watchListName: 'WatchList_3', stocks: [] },
-    { 
-      _id: 4, watchListName: 'WatchList_4', stocks: [] },
-    { _id: 5, watchListName: 'WatchList_5', stocks: [] }
-  ]
-  const [watchlist,setWatchList] = useState<IWatchList[]>(WATCHLIST)
-  const liveData = useLiveData()
-  const [activeTab, setActiveTab] = useState(watchlist[0]._id);
-  const [news,setNews] = useState()
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [watchlist, setWatchList] = useState<IWatchList[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("");
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<searchStock[]>([]);
+  const [news, setNews] = useState<any>();
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const activeWatchlist = useMemo(
+    () => watchlist.find((wl) => wl._id === activeTab),
+    [watchlist, activeTab]
+  );
+
+  const symbols = useMemo(() => {
+    return (
+      activeWatchlist?.stocks
+        ?.map((s) => s?.symbol)
+        .filter((s): s is string => typeof s === "string") || []
+    );
+  }, [activeWatchlist]);
+
+  const liveData = useLiveData(symbols);
+
+  useEffect(() => {
+    const fetchWatchlist = async () => {
+      try {
+        setLoading(true);
+        const res = await axiosInstance.get("/stocks/get-watchlist");
+        if (res.status && res.data.payload?.length > 0) {
+          setWatchList(res.data.payload);
+          setActiveTab(res.data.payload[0]._id);
+        }
+      } catch (err) {
+        console.error("Failed to fetch watchlist", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWatchlist();
+  }, []);
 
   useEffect(() => {
     const fetchSearchResults = async () => {
-      if (query.trim() === '') return;
+      if (!query.trim()) return;
       try {
-        const response: any = await axiosInstance.get(`/stocks/search?q=${query}`)
-        const data = response.data['payload']['quotes'];
-        setNews(response.data['payload']['news'])
-        setSearchResults(data.filter((stock: any) => stock.isYahooFinance)) // Adjust based on your API structure
-      } catch (e) {
-        console.log('Search ERR: ', e)
+        setLoading(true);
+        const res = await axiosInstance.get(`/stocks/search?q=${query}`);
+        const quotes = res.data.payload?.quotes || [];
+        setNews(res.data.payload?.news);
+        setSearchResults(
+          quotes.filter((stock: searchStock) => !!stock.longname)
+        );
+      } catch (err) {
+        console.error("Search Error:", err);
       } finally {
-
+        setLoading(false);
       }
-    }
+    };
 
-    const delayDebounce = setTimeout(() => {
-      fetchSearchResults();
-    }, 400); // debounce delay
+    const debounce = setTimeout(fetchSearchResults, 400);
+    return () => clearTimeout(debounce);
+  }, [query]);
 
-    return () => clearTimeout(delayDebounce)
-  }, [query])
+  const updateWatchlistStock = useCallback(
+    async (stockItem: searchStock) => {
+      try {
+        const res = await axiosInstance.patch("/stocks/add-watchlist", {
+          watchListId: activeTab,
+          stockSymbol: stockItem.symbol,
+          longName: stockItem.longname,
+        });
 
-
-
-  function getWatchListRows() {
-    const selectedWatchList: IWatchList | undefined = watchlist.find(wl => wl._id === activeTab);
-    return (
-      <div className="h-full w-full">
-        {/* Header table */}
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400 overflow-auto">
-          <thead className="text-xs uppercase">
-            <tr>
-              <th className="py-3 text-gray-400">Name</th>
-              <th className="text-right pr-6 py-3 text-gray-400">Price</th>
-            </tr>
-          </thead>
-        </table>
-
-        {/* Scrollable content */}
-        <div className="overflow-y-auto no-scrollbar h-[70%] md:h-[85%]">
-          <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <tbody>
-              {selectedWatchList?.stocks.map((stock:IStockData,index:number) => (
-                <tr key={stock.symbol} className={`bg-white ${index !== selectedWatchList.stocks.length - 1 ? 'border-b border-gray-200' : ''} dark:bg-gray-800 dark:border-gray-700`}>
-                  <th className="py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    {stock.name}
-                  </th>
-                  <td className="text-right pr-6 py-4">{liveData.get(stock.symbol)?.price||stock.current_price}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
-
-  function getSearchStocks() {
-    function updateWatchlistStock(stockItem:IStockData){
-      watchlist.map((stock:IWatchList) => {
-        if(stock._id === activeTab){
-          stock.stocks.push(stockItem)
+        if (res.status) {
+          setWatchList((prev) =>
+            prev.map((w) =>
+              w._id === activeTab
+                ? {
+                    ...w,
+                    stocks: [
+                      ...w.stocks,
+                      {
+                        symbol: stockItem.symbol,
+                        longName: stockItem.longname,
+                      },
+                    ],
+                  }
+                : w
+            )
+          );
+          if (stockItem.symbol) {
+            tickerStore.subscribeToSymbol(stockItem.symbol);
+          }
+          setQuery("");
         }
-        tickerStore.subscribeToSymbol(stockItem.symbol)
-      })
-      console.log('watchlist',watchlist)
-      setWatchList([...watchlist])
-    }
+      } catch (err) {
+        console.error("Update Watchlist Error:", err);
+      }
+    },
+    []
+  );
 
-    return (
-      <div className="h-full w-full">
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400 overflow-auto">
-          <thead className="text-xs uppercase">
-            <tr>
-              <th className="py-3 text-gray-400">Name</th>
-              <th className="text-right pr-6 py-3 text-gray-400">Exchange</th>
-            </tr>
-          </thead>
-        </table>
+  const deleteStockFromWatchlist = useCallback(
+    async (stockItem: searchStock) => {
+      try {
+        const response = await axiosInstance.patch("/stocks/del-watchlist", {
+          watchListId: activeTab,
+          stockSymbol: stockItem.symbol,
+        });
+        if (response.status) {
+          setWatchList((prev) =>
+            prev.map((w) =>
+              w._id === activeTab ? { ...w, stocks: w.stocks.filter((s) => s.symbol !== stockItem.symbol) } : w
+            )
+          );
+          tickerStore.unsubscribeFromSymbol(stockItem.symbol);
+        } 
+      } catch (err) {
+        console.error("Delete Stock from Watchlist Error:", err);
+      }
+    },
+    []
+  );  
 
-        <div className="overflow-y-auto no-scrollbar h-[70%] md:h-[85%]">
+  const renderWatchListRows = () => (
+    <div className="h-full w-full">
+      {/* Header */}
+      <div className="flex justify-between items-center w-full text-xs uppercase text-gray-400 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div >Name</div>
+        <div >Price</div>
+      </div>
+      {/* Rows */}
+      <div className="overflow-y-auto no-scrollbar h-[70%] md:h-[85%]">
+        {activeWatchlist?.stocks.map((stock, index) => {
+          const live = liveData.get(stock.symbol);
+          const price = live?.price ?? 0;
+          const change = live?.changePercent ?? 0;
+          const priceColor =
+            change > 0
+              ? "text-green-500"
+              : change < 0
+              ? "text-red-500"
+              : "text-gray-500";
+          return (
+            <div
+              key={stock.symbol}
+              className={`flex justify-between items-center gap-2 bg-white dark:bg-gray-800 ${
+                index !== activeWatchlist.stocks.length - 1
+                  ? "border-b border-gray-200 dark:border-gray-700"
+                  : ""
+              }`}
+            >
+              <div
+                className="w-fit py-4 font-medium text-gray-900 dark:text-white overflow-hidden text-ellipsis whitespace-nowrap "
+              >
+                {stock.longName}
+              </div>
+              <div className={`w-fit flex flex-col text-right  py-4 text-sm ${priceColor}`}
+              >
+                {price.toFixed(2)}
+                {change !== 0 && (
+                  <span className={`ml-2 text-sm ${priceColor}`}>
+                    ({change > 0 ? "+" : ""}{change.toFixed(2)}%)
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderSearchResults = () => (
+    <div className="h-full w-full">
+      <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400 overflow-auto">
+        <thead className="text-xs uppercase">
+          <tr>
+            <th className="py-3 text-gray-400">Name</th>
+            <th className="text-right pr-6 py-3 text-gray-400">Exchange</th>
+          </tr>
+        </thead>
+      </table>
+
+      <div className="overflow-y-auto no-scrollbar h-[70%] md:h-[85%]">
+        {loading ? (
+          <div className="flex justify-center items-center h-full w-full">
+            <svg
+              aria-hidden="true"
+              className="inline w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+              viewBox="0 0 100 101"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                fill="currentColor"
+              />
+              <path
+                d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                fill="currentFill"
+              />
+            </svg>
+          </div>
+        ) : (
           <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <tbody>
-              {searchResults.map((stock: any, index: number) => (
-                <tr key={index} className={`bg-white ${index !== searchResults.length - 1 ? 'border-b border-gray-200' : ''} dark:bg-gray-800 dark:border-gray-700`}>
-                  <th className="py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white flex justify-between items-center">
+              {searchResults.map((stock, index) => (
+                <tr
+                  key={index}
+                  className={`bg-white ${
+                    index !== searchResults.length - 1
+                      ? "border-b border-gray-200"
+                      : ""
+                  } dark:bg-gray-800 dark:border-gray-700`}
+                >
+                  <th className="py-4 font-medium text-gray-900  dark:text-white flex justify-between items-center">
                     {stock.longname}
-                    <button className="border-1 border-solid border-indigo-500 px-1.5 pb-[2px] mr-3 text-indigo-500 hover:bg-indigo-500 hover:text-white" onClick={()=>updateWatchlistStock(stock)}>
+                    {
+                      
+                      liveData.has(stock.symbol) ?
+                      <button
+                      className="border-1 border-solid  border-red-500 py-[2px] px-[8px]  text-red-500 hover:bg-red-500  hover:text-white"
+                      onClick={() => deleteStockFromWatchlist(stock)}
+                    >
+                      -
+                    </button>
+                    :
+                    <button
+                      className="border-1 border-solid border-indigo-500 px-1.5 pb-[2px] text-indigo-500 hover:bg-indigo-500 hover:text-white"
+                      onClick={() => updateWatchlistStock(stock)}
+                    >
                       +
                     </button>
+                    }
                   </th>
                   <td className="text-right pr-6 py-4">
-                    {stock.exchange || '-'}</td>
+                    {stock.exchange || "-"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
 
-  return (
+  return loading && query.length === 0 ? (
+    <div className="flex justify-center items-center h-full w-full">
+      <svg
+        aria-hidden="true"
+        className="inline w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+        viewBox="0 0 100 101"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+          fill="currentColor"
+        />
+        <path
+          d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+          fill="currentFill"
+        />
+      </svg>
+    </div>
+  ) : (
     <div className="h-full w-full md:flex gap-2">
       <div className="w-full h-full lg:w-[65%] px-6 py-3 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden">
         <div className="w-full h-[calc(100vh-135px)]">
-          {/* Tabs + Search */}
           <div className="w-full flex flex-col md:flex-row justify-between items-center mb-3">
             <ul className="w-full md:w-[55%] flex overflow-x-auto no-scrollbar whitespace-nowrap text-sm font-medium text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400">
-              {watchlist.map((w:IWatchList,index:number) => (
-                <li className="me-2" key={index}>
+              {watchlist.map((w) => (
+                <li key={w._id} className="me-2">
                   <a
-                    onClick={() => setActiveTab(w._id)}
                     href="#"
-                    className={`inline-block p-4 rounded-t-lg ${activeTab === w._id ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-white'}`}>
+                    onClick={() => setActiveTab(w._id)}
+                    className={`inline-block p-4 rounded-t-lg ${
+                      activeTab === w._id
+                        ? "text-blue-600 border-b-2 border-blue-600 dark:text-blue-400"
+                        : "text-gray-500 hover:text-gray-700 dark:hover:text-white"
+                    }`}
+                  >
                     {w.watchListName}
                   </a>
                 </li>
               ))}
             </ul>
 
-            {/* Search input */}
-            <form className="w-full md:w-[40%] mt-2" onSubmit={(e) => e.preventDefault()}>
-              <label htmlFor="default-search" className="sr-only">Search</label>
+            <form
+              className="w-full md:w-[40%] mt-2"
+              onSubmit={(e) => e.preventDefault()}
+            >
               <div className="relative">
                 <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                  <svg
+                    className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                    fill="none"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                    />
                   </svg>
                 </div>
                 <input
                   type="search"
-                  id="default-search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="block w-full p-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   placeholder="Search stock..."
+                  className="block w-full p-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
                 />
               </div>
             </form>
           </div>
 
-          {/* Table */}
-          {query ? getSearchStocks() : getWatchListRows()}
+          {query ? renderSearchResults() : renderWatchListRows()}
         </div>
       </div>
 
       <div className="w-[35%] hidden lg:block">
-        <News data={news||[]}/>
+        <News data={news || []} />
       </div>
     </div>
   );
