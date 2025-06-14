@@ -5,6 +5,7 @@ import { auth } from './firebase';
 
 const axiosInstance = axios.create({
   baseURL:import.meta.env.VITE_BASE_URL,
+  withCredentials: true,
   // Remove the fallback to localhost as it can cause issues in production
 });
 
