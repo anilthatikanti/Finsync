@@ -4,7 +4,8 @@ import { auth } from './firebase';
  // Assuming you initialize Firebase Auth here
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BASE_URL||'http://localhost:3000', // Default to localhost if VITE_BASE_URL is not set
+  baseURL: import.meta.env.DEV ? 'http://localhost:3000' : import.meta.env.VITE_BASE_URL,
+  // Remove the fallback to localhost as it can cause issues in production
 });
 
 // Request interceptor to automatically add the Authorization header
