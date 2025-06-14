@@ -3,15 +3,8 @@ import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { auth } from './firebase';
  // Assuming you initialize Firebase Auth here
 
-const isDevelopment = process.env.NODE_ENV === 'development';
-const baseURL = isDevelopment ? 'http://localhost:3000' : import.meta.env.VITE_BASE_URL;
-
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Is development?', isDevelopment);
-console.log('Base URL:', baseURL);
-
 const axiosInstance = axios.create({
-  baseURL,
+  baseURL:import.meta.env.VITE_BASE_URL,
   // Remove the fallback to localhost as it can cause issues in production
 });
 
