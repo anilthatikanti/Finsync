@@ -4,7 +4,7 @@ import { auth } from './firebase';
  // Assuming you initialize Firebase Auth here
 
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_BASE_URL || "http://localhost:3000",
+  baseURL: import.meta.env.VITE_BASE_URL||'http://localhost:3000', // Default to localhost if VITE_BASE_URL is not set
 });
 
 // Request interceptor to automatically add the Authorization header
@@ -14,7 +14,6 @@ axiosInstance.interceptors.request.use(
       const currentUser = auth.currentUser;
       if (currentUser) {
         const idToken = await currentUser.getIdToken();
-        console.log("idToken",idToken)
         if (idToken) {
         request.headers['Authorization'] = `Bearer ${idToken}`}
       }
