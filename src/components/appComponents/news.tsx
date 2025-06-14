@@ -52,7 +52,7 @@ export const News = () => {
       ) : (
         <>
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-            Latest Financial News
+            Latest Financial News <span className="text-red-600">{error}</span>
           </h2>
           <div className="space-y-4">
             {news.map((item: NewsArticle, index: number) => {
