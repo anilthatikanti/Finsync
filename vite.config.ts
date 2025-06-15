@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     server: {
-      port: 3000
+      port: 3200
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(mode),
