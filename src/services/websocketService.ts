@@ -37,7 +37,7 @@ class WebSocketService {
             }
 
             try {
-                this.socket = new WebSocket("ws://localhost:3000", this.token);
+                this.socket = new WebSocket(import.meta.env.VITE_WEB_SOCKET, this.token);
                 
                 this.socket.onopen = () => {
                     console.log('WebSocket connected');
