@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, GoogleAuthProvider, OAuthProvider, signInWithPopup, sendEmailVerification, signOut, GithubAuthProvider } from "firebase/auth";
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendEmailVerification, signOut, GithubAuthProvider } from "firebase/auth";
 import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../../services/firebase";
 import { useForm } from "react-hook-form";
@@ -72,18 +72,6 @@ export const SignUp = () => {
     } catch (error: any) {
       setThirdPartyError(error.message || "GitHub signup failed");
       console.error("GitHub signup error:", error);
-    }
-  };
-
-  const handleMicrosoftSignup = async () => {
-    setThirdPartyError(null);
-    const provider = new OAuthProvider("microsoft.com");
-    provider.setCustomParameters({ prompt: "select_account" });
-    try {
-      await signInWithPopup(auth, provider);
-      navigate("/");
-    } catch (error: any) {
-      setThirdPartyError(error.message || "Microsoft signup failed");
     }
   };
 

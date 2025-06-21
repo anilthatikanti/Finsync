@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithEmailAndPassword, sendEmailVerification, GithubAuthProvider } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, sendEmailVerification, GithubAuthProvider } from "firebase/auth";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { auth } from "../../services/firebase";
 import { useForm } from "react-hook-form";
@@ -134,17 +134,6 @@ export const Login = () => {
     } catch (error: any) {
       console.error("GitHub login error:", error);
       // You could set an error state here to show the user
-    }
-  };
-
-  const handleMicrosoftLogin = async () => {
-    const provider = new OAuthProvider("microsoft.com");
-    provider.setCustomParameters({ prompt: "select_account" });
-    try {
-      await signInWithPopup(auth, provider);
-      navigate('/');
-    } catch (error) {
-      console.error("Microsoft login error:", error);
     }
   };
 
