@@ -26,9 +26,13 @@ export const Login = () => {
   const email = watch("email");
 
   useEffect(() => {
-    // Check if user came from verification success page
+    // Check for messages to display based on URL parameters
+    const from = searchParams.get('from');
     const verified = searchParams.get('verified');
-    if (verified === 'true') {
+    
+    if (from === 'signup') {
+      setSuccessMessage("Account created! Please verify your email before login.");
+    } else if (verified === 'true') {
       setSuccessMessage("Email verified successfully! You can now log in.");
     }
   }, [searchParams]);
@@ -138,9 +142,9 @@ export const Login = () => {
   };
 
   return (
-    <div className="h-screen w-screen flex justify-center items-center dark:bg-gray-900 font-poppins">
+    <div className="h-screen w-full flex justify-center items-center dark:bg-gray-900 font-poppins">
       <div className=" h-fit gap-2">
-        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-10 md:p-8 sm:p-4 p-1 m-10">
+        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] dark:bg-gray-900 max-w-[450px] w-full bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-10 md:p-8 sm:p-4 p-1 m-6">
           <div className="flex justify-center items-center mb-4 gap-3">
             <img src="/logos/finsync.png" className="w-[13%]" alt="finsync logo" />
             <h2 className="pt-4 pb-4 font-bold dark:text-gray-400 text-3xl cursor-default">Finsync</h2>
@@ -201,7 +205,7 @@ export const Login = () => {
           )}
 
           {loginError && (
-            <div className="text-red-500 text-center mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg whitespace-wrap max-w-[340px]  w-full">
+            <div className="text-red-500 text-center mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg whitespace-wrap w-full">
               {loginError}
             </div>
           )}

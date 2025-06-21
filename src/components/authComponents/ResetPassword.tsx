@@ -64,7 +64,7 @@ export const ResetPassword = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 font-poppins">
             <div className="w-full max-w-md">
-                <div className="bg-white dark:bg-gray-800 border-[10px] border-transparent rounded-[20px] shadow-lg px-6 py-8 mx-4 text-center">
+                <div className="bg-white dark:bg-gray-800 border-[10px] border-transparent rounded-[20px] max-w-[450px] w-full shadow-lg px-6 py-8 mx-4 text-center">
                     <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-4">Success!</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-6">{successMessage}</p>
                     <Link to="/login" className="group text-blue-400 transition-all duration-100 ease-in-out">

@@ -45,7 +45,7 @@ export const ForgotPassword = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 font-poppins">
       <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 border-[10px] border-transparent rounded-[20px] shadow-lg px-6 py-8 mx-4 text-center">
+        <div className="bg-white dark:bg-gray-800 border-[10px] border-transparent rounded-[20px] max-w-[450px] w-full shadow-lg px-6 py-8 mx-4 text-center">
           <div className="flex justify-center items-center mb-6 gap-3">
             <img src="/logos/finsync.png" className="w-[13%]" alt="Finsync Logo" />
             <h2 className="pt-4 pb-4 font-bold dark:text-gray-400 text-3xl cursor-default">

@@ -41,7 +41,9 @@ export const SignUp = () => {
       
       // Logout the user immediately
       await signOut(auth);
-      navigate("/login");
+      
+      // Redirect to the login page with a success flag
+      navigate("/login?from=signup", { replace: true });
             
     } catch (err: any) {
       const shortCode = err.code.split("/")[1];
@@ -78,7 +80,7 @@ export const SignUp = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 font-poppins">
       <div className="w-full max-w-md">
-        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg px-4 py-2 mx-4">
+        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] max-w-[450px] w-full dark:bg-gray-900 bg-white shadow-lg px-4 py-2 mx-4">
           <div className="flex justify-center items-center mb-4 gap-3">
             <img
               src="/logos/finsync.png"
@@ -171,7 +173,7 @@ export const SignUp = () => {
             <button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r dark:text-gray-300 from-blue-500 to-purple-500 shadow-lg mt-4 p-2 text-white rounded-lg w-full hover:scale-105 hover:from-purple-500 hover:to-blue-500 transition duration-300 ease-in-outflex flex justify-center items-center gap-3"
+              className="bg-gradient-to-r dark:text-gray-300 from-blue-500 to-purple-500 shadow-lg mt-4 p-2 text-white rounded-lg w-full hover:scale-105 hover:from-purple-500 hover:to-blue-500 transition duration-300 ease-in-outflex flex justify-center items-center gap-3 disabled:opacity-75"
             >
               {loading && (
                 <svg
@@ -197,7 +199,7 @@ export const SignUp = () => {
 
           <div className="flex flex-col mt-4 items-center justify-center text-sm">
             <h3 className="dark:text-gray-300">
-              Don't have an account?
+              Already have an account?
               <Link
                 to="/login"
                 className="group text-blue-400 transition-all duration-100 ease-in-out"
