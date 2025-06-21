@@ -13,15 +13,15 @@ export const ProtectedLayout = () => {
         </svg>
         <span className="sr-only">Loading...</span>
     </div>;
-}
-  if (!user) {
+  }
+  
+  if (!user || !user.emailVerified) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
+  
   return (
     <Layout>
       <Outlet/>
     </Layout>
   )
-
 };

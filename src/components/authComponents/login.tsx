@@ -1,5 +1,5 @@
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithEmailAndPassword, sendEmailVerification, GithubAuthProvider } from "firebase/auth";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { auth } from "../../services/firebase";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
@@ -14,22 +14,137 @@ export const Login = () => {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<LoginFormInputs>();
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const email = watch("email");
 
   useEffect(() => {
-  }, [])
+    // Check if user came from verification success page
+    const verified = searchParams.get('verified');
+    if (verified === 'true') {
+      setSuccessMessage("Email verified successfully! You can now log in.");
+    }
+  }, [searchParams]);
+  
   const handleLogin = async (data: { email: string; password: string }) => {
-    // Suggested code may be subject to a license. Learn more: ~LicenseLog:1478446025.
     setLoading(true);
+    setLoginError(null);
+    
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+      
+      // Check if email is verified
+      if (!user.emailVerified) {
+        // Sign out the user since they're not verified
+        await auth.signOut();
+        setLoginError("Check your email to verify your account.");
+        return;
+      }
+      
       navigate('/');
-    } catch (err) {
-      alert('Login failed');
+    } catch (err: any) {
+      let errorMessage = 'Login failed';
+      
+      // Handle specific Firebase auth errors
+      if (err.code) {
+        switch (err.code) {
+          case 'auth/user-not-found':
+            errorMessage = 'No account found with this email address.';
+            break;
+          case 'auth/wrong-password':
+            errorMessage = 'Incorrect password.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address.';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many failed attempts. Please try again later.';
+            break;
+          default:
+            errorMessage = 'Login failed. Please try again.';
+        }
+      }
+      
+      setLoginError(errorMessage);
     } finally {
       setLoading(false)
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setResendMessage("Please enter your email address first.");
+      return;
+    }
+
+    setResendLoading(true);
+    setResendMessage(null);
+    
+    try {
+      // Try to sign in to get the user object
+      const userCredential = await signInWithEmailAndPassword(auth, email, watch("password"));
+      const user = userCredential.user;
+      
+      if (user.emailVerified) {
+        setLoginError(null);
+        setResendMessage("email is verified. You can login now.");
+        await auth.signOut();
+      } else {
+        await sendEmailVerification(user);
+        setResendMessage("Verification email sent! Please check your inbox.");
+        await auth.signOut();
+      }
+    } catch (err: any) {
+      if (err.code === 'auth/wrong-password') {
+        setResendMessage("Please enter the correct password to resend verification email.");
+      } else if (err.code === 'auth/user-not-found') {
+        setResendMessage("No account found with this email address.");
+      } else {
+        setResendMessage("Failed to send verification email. Please try again.");
+      }
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    try {
+      await signInWithPopup(auth, provider);
+      navigate('/');
+    } catch (error) {
+      console.error("Google login error:", error);
+    }
+  };
+
+  const handleGithubLogin = async () => {
+    const provider = new GithubAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      navigate('/');
+    } catch (error: any) {
+      console.error("GitHub login error:", error);
+      // You could set an error state here to show the user
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    const provider = new OAuthProvider("microsoft.com");
+    provider.setCustomParameters({ prompt: "select_account" });
+    try {
+      await signInWithPopup(auth, provider);
+      navigate('/');
+    } catch (error) {
+      console.error("Microsoft login error:", error);
     }
   };
 
@@ -71,11 +186,11 @@ export const Login = () => {
               {errors.password && <p className="text-red-500">Password is required.</p>}
             </div>
 
-            <a href="#" className="group text-blue-400 transition-all duration-100 ease-in-out text-sm">
+            <Link to="/forgot-password" className="group text-blue-400 transition-all duration-100 ease-in-out text-sm">
               <span className="bg-left-bottom bg-gradient-to-r from-blue-400 to-blue-400 bg-[length:0%_2px] bg-no-repeat group-hover:bg-[length:100%_2px] transition-all duration-500 ease-out">
                 Forget your password?
               </span>
-            </a>
+            </Link>
 
             <button
               type="submit"
@@ -90,49 +205,86 @@ export const Login = () => {
             </button>
           </form>
 
+          {successMessage && (
+            <div className="text-green-600 text-center mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              {successMessage}
+            </div>
+          )}
+
+          {loginError && (
+            <div className="text-red-500 text-center mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg whitespace-wrap max-w-[340px]  w-full">
+              {loginError}
+            </div>
+          )}
+
+          {loginError && loginError.includes("Check your email") && (
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className="text-blue-400 hover:text-blue-600 text-sm underline disabled:opacity-50"
+              >
+                {resendLoading ? "Sending..." : "Resend verification email"}
+              </button>
+              {resendMessage && (
+                <div className={`text-center mt-2 p-2 rounded-lg text-sm ${
+                  resendMessage.includes("sent") || resendMessage.includes("verified") 
+                    ? "text-green-600 bg-green-50 dark:bg-green-900/20" 
+                    : "text-red-500 bg-red-50 dark:bg-red-900/20"
+                }`}>
+                  {resendMessage}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col mt-4 items-center justify-center text-sm">
             <h3 className="dark:text-gray-300">
               Don't have an account?
-              <a href="#" className="group text-blue-400 transition-all duration-100 ease-in-out">
+              <Link to="/signup" className="group text-blue-400 transition-all duration-100 ease-in-out">
                 <span className="bg-left-bottom bg-gradient-to-r from-blue-400 to-blue-400 bg-[length:0%_2px] bg-no-repeat group-hover:bg-[length:100%_2px] transition-all duration-500 ease-out">
                   {" "}Sign Up
                 </span>
-              </a>
+              </Link>
             </h3>
           </div>
 
           {/* Third Party Auth */}
           <div className="flex flex-row items-center justify-between mt-5">
-            {[
-              { src: "https://ucarecdn.com/8f25a2ba-bdcf-4ff1-b596-088f330416ef/", alt: "Google" },
-              { src: "https://img.icons8.com/color/48/microsoft.png", alt: "Microsoft" },
-
-              // { src: "https://ucarecdn.com/95eebb9c-85cf-4d12-942f-3c40d7044dc6/", alt: "Linkedin" },
-              // { src: "https://ucarecdn.com/be5b0ffd-85e8-4639-83a6-5162dfa15a16/", alt: "Github", darkInvert: true },
-              // { src: "https://ucarecdn.com/6f56c0f1-c9c0-4d72-b44d-51a79ff38ea9/", alt: "Facebook" },
-              // { src: "https://ucarecdn.com/82d7ca0a-c380-44c4-ba24-658723e2ab07/", alt: "Twitter" },
-              // { src: "https://ucarecdn.com/3277d952-8e21-4aad-a2b7-d484dad531fb/", alt: "Apple" },
-            ].map(({ src, alt }) => (
-              <button key={alt} className=" hover:scale-105 dark:bg-gray-800 ease-in-out duration-300 shadow-lg p-2 rounded-lg m-1 w-full flex justify-center">
-                <img className="`max-w-[25px] h-[25px]" src={src} alt={alt} />
-              </button>
-            ))}
+            <button onClick={handleGoogleLogin} className=" hover:scale-105 dark:bg-gray-800 ease-in-out duration-300 shadow-lg p-2 rounded-lg m-1 w-full flex justify-center cursor-pointer">
+              <img className="`max-w-[25px] h-[25px]" src="https://ucarecdn.com/8f25a2ba-bdcf-4ff1-b596-088f330416ef/" alt="Google" />
+            </button>
+            <button
+              onClick={handleGithubLogin}
+              className="hover:scale-105 dark:bg-gray-800 ease-in-out duration-300 shadow-lg p-2 rounded-lg m-1 w-full flex justify-center cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path fillRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.165 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.031-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.378.203 2.398.1 2.651.64.7 1.03 1.595 1.03 2.688 0 3.848-2.338 4.695-4.566 4.942.359.308.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.001 10.001 0 0022 12c0-5.523-4.477-10-10-10z" clipRule="evenodd" />
+              </svg>
+            </button>
           </div>
 
           <div className="text-gray-500 flex text-center flex-col mt-4 items-center text-sm">
             <p className="cursor-default">
               By signing in, you agree to our{" "}
-              <a href="#" className="group text-blue-400 transition-all duration-100 ease-in-out">
+              <Link
+                to="#"
+                className="group text-blue-400 transition-all duration-100 ease-in-out"
+              >
                 <span className="cursor-pointer bg-left-bottom bg-gradient-to-r from-blue-400 to-blue-400 bg-[length:0%_2px] bg-no-repeat group-hover:bg-[length:100%_2px] transition-all duration-500 ease-out">
                   Terms
                 </span>
-              </a>{" "}
+              </Link>{" "}
               and{" "}
-              <a href="#" className="group text-blue-400 transition-all duration-100 ease-in-out">
+              <Link
+                to="#"
+                className="group text-blue-400 transition-all duration-100 ease-in-out"
+              >
                 <span className="cursor-pointer bg-left-bottom bg-gradient-to-r from-blue-400 to-blue-400 bg-[length:0%_2px] bg-no-repeat group-hover:bg-[length:100%_2px] transition-all duration-500 ease-out">
                   Privacy Policy
                 </span>
-              </a>
+              </Link>
             </p>
           </div>
         </div>
