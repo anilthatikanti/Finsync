@@ -126,13 +126,12 @@ export const ResetPassword = () => {
               {loading ? "Resetting..." : "Reset Password"}
             </button>
           </form>
-          <div className="w-full min-w-[300px] max-w-[450px]">
-
-          {errorMessage && (
-            <div className="text-red-500 text-center mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-              {errorMessage}
-            </div>
-          )}
+          <div className="w-full max-w-[450px]">
+            {errorMessage && (
+              <div className="text-red-500 text-center mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                {errorMessage}
+              </div>
+            )}
           </div>
         </div>
       </div>

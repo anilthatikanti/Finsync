@@ -197,18 +197,17 @@ export const Login = () => {
               LOG IN
             </button>
           </form>
-          <div className="w-full min-w-[300px] max-w-[450px]">
-          {successMessage && (
-            <div className="text-green-600 text-center mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              {successMessage}
-            </div>
-          )}
-
-          {loginError && (
-            <div className="text-red-500 text-center mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg whitespace-wrap w-full">
-              {loginError}
-            </div>
-          )}
+          <div className="w-full max-w-[450px]">
+            {successMessage && !loginError && (
+              <div className="text-green-600 text-center mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                {successMessage}
+              </div>
+            )}
+            {loginError && (
+              <div className="text-red-500 text-center mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg whitespace-wrap w-full">
+                {loginError}
+              </div>
+            )}
           </div>
 
           {loginError && loginError.includes("Check your email") && (

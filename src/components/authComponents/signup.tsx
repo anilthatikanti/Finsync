@@ -20,31 +20,31 @@ export const SignUp = () => {
   const [thirdPartyError, setThirdPartyError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {}, []);
-  
-  const handleSignup = async (data: { email: string; password: string;verifyPassword:string }) => {
+  useEffect(() => { }, []);
+
+  const handleSignup = async (data: { email: string; password: string; verifyPassword: string }) => {
     setLoading(true);
     setThirdPartyError(null);
-    
+
     try {
       // Create user account
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.verifyPassword);
       const user = userCredential.user;
-      
+
       // Define the dynamic action code settings for this app
       const actionCodeSettings = {
         url: import.meta.env.VITE_APP_ACTION_URL,
       };
-      
+
       // Send verification email with the custom URL
       await sendEmailVerification(user, actionCodeSettings);
-      
+
       // Logout the user immediately
       await signOut(auth);
-      
+
       // Redirect to the login page with a success flag
       navigate("/login?from=signup", { replace: true });
-            
+
     } catch (err: any) {
       const shortCode = err.code.split("/")[1];
       setThirdPartyError(shortCode);
@@ -253,12 +253,11 @@ export const SignUp = () => {
               </Link>
             </p>
           </div>
-<div className="w-full min-w-[300px] max-w-[450px]">
-
-          {thirdPartyError && (
-            <div className="text-red-500 text-center mt-2">{thirdPartyError}</div>
-          )}
-</div>
+          <div className="w-full max-w-[450px]">
+            {thirdPartyError && (
+              <div className="text-red-500 text-center mt-2">{thirdPartyError}</div>
+            )}
+          </div>
 
         </div>
       </div>
