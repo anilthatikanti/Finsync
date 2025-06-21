@@ -80,7 +80,7 @@ export const SignUp = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 font-poppins">
       <div className="w-full max-w-md">
-        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] max-w-[450px] w-full dark:bg-gray-900 bg-white shadow-lg px-4 py-2 mx-4">
+        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg px-4 py-2 mx-4">
           <div className="flex justify-center items-center mb-4 gap-3">
             <img
               src="/logos/finsync.png"
@@ -253,10 +253,12 @@ export const SignUp = () => {
               </Link>
             </p>
           </div>
+<div className="w-full min-w-[300px] max-w-[450px]">
 
           {thirdPartyError && (
             <div className="text-red-500 text-center mt-2">{thirdPartyError}</div>
           )}
+</div>
 
         </div>
       </div>

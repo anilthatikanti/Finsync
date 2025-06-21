@@ -142,9 +142,9 @@ export const Login = () => {
   };
 
   return (
-    <div className="h-screen w-full flex justify-center items-center dark:bg-gray-900 font-poppins">
-      <div className=" h-fit gap-2">
-        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] dark:bg-gray-900 max-w-[450px] w-full bg-white shadow-lg xl:p-10 2xl:p-10 lg:p-10 md:p-8 sm:p-4 p-1 m-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 font-poppins">
+      <div className="w-full max-w-md">
+        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg px-4 py-2 mx-4">
           <div className="flex justify-center items-center mb-4 gap-3">
             <img src="/logos/finsync.png" className="w-[13%]" alt="finsync logo" />
             <h2 className="pt-4 pb-4 font-bold dark:text-gray-400 text-3xl cursor-default">Finsync</h2>
@@ -197,7 +197,7 @@ export const Login = () => {
               LOG IN
             </button>
           </form>
-
+          <div className="w-full min-w-[300px] max-w-[450px]">
           {successMessage && (
             <div className="text-green-600 text-center mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
               {successMessage}
@@ -209,6 +209,7 @@ export const Login = () => {
               {loginError}
             </div>
           )}
+          </div>
 
           {loginError && loginError.includes("Check your email") && (
             <div className="mt-3 text-center">

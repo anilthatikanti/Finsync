@@ -64,7 +64,7 @@ export const ResetPassword = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 font-poppins">
             <div className="w-full max-w-md">
-                <div className="bg-white dark:bg-gray-800 border-[10px] border-transparent rounded-[20px] max-w-[450px] w-full shadow-lg px-6 py-8 mx-4 text-center">
+                <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg px-4 py-2 mx-4 text-center">
                     <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-4">Success!</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-6">{successMessage}</p>
                     <Link to="/login" className="group text-blue-400 transition-all duration-100 ease-in-out">
@@ -81,7 +81,7 @@ export const ResetPassword = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 font-poppins">
       <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 border-[10px] border-transparent rounded-[20px] shadow-lg px-6 py-8 mx-4">
+        <div className="bg-stone-950 border-[10px] border-transparent rounded-[20px] dark:bg-gray-900 bg-white shadow-lg px-4 py-2 mx-4">
           <h3 className="text-2xl font-bold text-center text-gray-800 dark:text-gray-300 mb-6">Reset Your Password</h3>
           
           <form onSubmit={handleSubmit(handlePasswordReset)} className="space-y-4">
@@ -126,12 +126,14 @@ export const ResetPassword = () => {
               {loading ? "Resetting..." : "Reset Password"}
             </button>
           </form>
+          <div className="w-full min-w-[300px] max-w-[450px]">
 
           {errorMessage && (
             <div className="text-red-500 text-center mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
               {errorMessage}
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
